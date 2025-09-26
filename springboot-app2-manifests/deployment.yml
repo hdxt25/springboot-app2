@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: springboot-app2
-        image: hdxt25/springboot-app2:replaceImageTag
+        image: hdxt25/springboot-app2:51
         ports:
         - containerPort: 8080
