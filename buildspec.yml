@@ -21,23 +21,8 @@ phases:
       - sudo apt-get install -y docker.io
   build:
     commands:
-      - echo "code compilation"
-      - mvn compile
-      - echo "code review"
-      - mvn pmd:pmd
-      - echo "code test"
-      - mvn test
-      - echo "package war artifcat"
-      - mvn package
-      - echo "run static code analysis via sonar"
-      - echo "Running SonarQube in Docker..."
-      - docker pull sonarqube:community
-      - docker run -d --name sonarqube -p 9000:9000 sonarqube:community
-      - echo "Waiting for SonarQube to start..."
-      - sleep 60
-      - export SONAR_URL=http://localhost:9000
-      - echo "Running Maven Sonar analysis using admin..."
-      - mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=admin -Dsonar.host.url=$SONAR_URL || echo "Sonar skipped"
+      - echo "code build"
+      - mvn clean package pmd:pmd
       - echo "Building Docker image..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
       - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/springboot-app2:${CODEBUILD_BUILD_NUMBER}" .
