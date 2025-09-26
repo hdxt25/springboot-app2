@@ -1,0 +1,58 @@
+version: 0.2
+
+env:
+  parameter-store:
+    DOCKER_REGISTRY_USERNAME: /springboot-app2/docker-credentials/username
+    DOCKER_REGISTRY_PASSWORD: /springboot-app2/docker-credentials/password
+    DOCKER_REGISTRY_URL: /springboot-app2/docker-registry-url
+    SONAR_AUTH_TOKEN: /springboot-app2/sonartoken
+    GIT_REPO_NAME:  /springboot-app2/githubrepo-name
+    GIT_USER_NAME:  /springboot-app2/githubuser
+    GITHUB_TOKEN: /springboot-app2/github-token
+phases:
+  install:
+    runtime-versions:
+      java: 17
+      maven: 3.11.0
+  pre_build:
+    commands:
+      - echo "Installing dependencies..."
+      - sudo apt-get update -y
+      - echo "Installing docker"
+      - sudo apt-get install -y docker.io
+  build:
+    commands:
+      - echo "code compilation"
+      - mvn compile
+      - echo "code review"
+      - mvn pmd:pmd
+      - echo "code test"
+      - mvn test
+      - echo "package war artifcat"
+      - mvn package
+      - echo "run static code analysis via sonar"
+      - mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=http://$(curl -s ipconfig.me):9000
+      - echo "Building Docker image..."
+      - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
+      - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/springboot-app2:latest" .
+      - docker push "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/springboot-app2:latest"
+      - echo "docker logout"
+      - docker logout
+  post_build:
+    commands:
+      - echo "Build completed successfully!"
+      - echo "Configuring Git..."
+      - git config user.email "hdxt25@gmail.com"
+      - git config user.name "himanshu"
+      - git config --global --add safe.directory $CODEBUILD_SRC_DIR
+      - echo "Updating deployment manifest with BUILD_NUMBER..."
+      - sed -i "s/replaceImageTag/${CODEBUILD_BUILD_NUMBER}/g" spring-boot-app-manifests/deployment.yml
+      - echo "Committing changes..."
+      - git add .
+      - git commit -m "Update deployment image to version ${CODEBUILD_BUILD_NUMBER}"
+      - echo "Pushing to GitHub..."
+      - git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+artifacts:
+  files:
+    - '**/*'
+  base-directory: springboot-app2
