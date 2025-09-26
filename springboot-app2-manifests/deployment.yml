@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: springboot-app2
+  labels:
+    app: springboot-app2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: springboot-app2
+  template:
+    metadata:
+      labels:
+        app: springboot-app2
+    spec:
+      containers:
+      - name: springboot-app2
+        image: hdxt25/springboot-app2:${CODEBUILD_BUILD_NUMBER}
+        ports:
+        - containerPort: 8080
