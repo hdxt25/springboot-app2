@@ -30,7 +30,14 @@ phases:
       - echo "package war artifcat"
       - mvn package
       - echo "run static code analysis via sonar"
-      - mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=http://18.223.115.64:9000
+      - echo "Running SonarQube in Docker..."
+      - docker pull sonarqube:community
+      - docker run -d --name sonarqube -p 9000:9000 sonarqube:community
+      - echo "Waiting for SonarQube to start..."
+      - sleep 60
+      - export SONAR_URL=http://localhost:9000
+      - echo "Running Maven Sonar analysis using admin..."
+      - mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=admin -Dsonar.host.url=$SONAR_URL
       - echo "Building Docker image..."
       - echo "$DOCKER_REGISTRY_PASSWORD" | docker login -u "$DOCKER_REGISTRY_USERNAME" --password-stdin "$DOCKER_REGISTRY_URL"
       - docker build -t "$DOCKER_REGISTRY_URL/$DOCKER_REGISTRY_USERNAME/springboot-app2:${CODEBUILD_BUILD_NUMBER}" .
@@ -43,6 +50,7 @@ phases:
       - echo "Configuring Git..."
       - git config user.email "hdxt25@gmail.com"
       - git config user.name "himanshu"
+      - git checkout main
       - git config --global --add safe.directory $CODEBUILD_SRC_DIR
       - echo "Updating deployment manifest with BUILD_NUMBER..."
       - sed -i "s/replaceImageTag/${CODEBUILD_BUILD_NUMBER}/g" springboot-app2-manifests/deployment.yml
@@ -50,7 +58,7 @@ phases:
       - git add .
       - git commit -m "Update deployment image to version ${CODEBUILD_BUILD_NUMBER}"
       - echo "Pushing to GitHub..."
-      - git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+      - git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
 artifacts:
   files:
     - '**/*'
