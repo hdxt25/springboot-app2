@@ -35,7 +35,7 @@ phases:
       - docker run -d --name sonarqube -p 9000:9000 sonarqube:community
       - echo "Waiting for SonarQube to start..."
       - sleep 60
-      - export SONAR_URL=http://localhost:9000
+      - export SONAR_URL=http://$(curl -s ifconfig.me):9000
       - echo "Running Maven Sonar analysis using admin..."
       - mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=admin -Dsonar.host.url=$SONAR_URL
       - echo "Building Docker image..."
